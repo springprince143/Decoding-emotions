@@ -1,0 +1,43 @@
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import pandas as pd
+
+# Load the pre-trained model and tokenizer
+model_name = "j-hartmann/emotion-english-distilroberta-base"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+# Emotion labels from the model
+labels = [
+    "admiration", "amusement", "anger", "annoyance", "approval", "caring", "confusion",
+    "curiosity", "desire", "disappointment", "disapproval", "disgust", "embarrassment",
+    "excitement", "fear", "gratitude", "grief", "joy", "love", "nervousness", "optimism",
+    "pride", "realization", "relief", "remorse", "sadness", "surprise", "neutral"
+]
+
+# Function to predict emotion from text
+def predict_emotion(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    scores = torch.nn.functional.softmax(outputs.logits, dim=1)[0]
+    results = {labels[i]: float(scores[i]) for i in range(len(labels))}
+    sorted_results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+    return sorted_results
+
+# Sample data: list of social media comments
+texts = [
+    "I'm so happy with the service I received today!",
+    "I feel really sad and disappointed.",
+    "Why is everything so confusing lately?",
+    "Absolutely loved the movie. A must-watch!",
+    "I'm scared about what might happen next.",
+]
+
+# Analyze and print results
+for text in texts:
+    print(f"\nText: {text}")
+    emotions = predict_emotion(text)
+    top_emotions = list(emotions.items())[:3]  # Show top 3 emotions
+    for emotion, score in top_emotions:
+        print(f"  {emotion}: {score:.3f}")
